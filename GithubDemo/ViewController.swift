@@ -9,12 +9,20 @@
 import UIKit
 import MBProgressHUD
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     var searchBar: UISearchBar!
     var searchSettings = GithubRepoSearchSettings()
+    var repos: [GithubRepo]?
 
+    @IBOutlet weak var repoTableView: UITableView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        repoTableView.delegate = self;
+        repoTableView.dataSource = self;
+        repoTableView.estimatedRowHeight = 100
+        repoTableView.rowHeight = UITableViewAutomaticDimension
         
         // initialize UISearchBar
         searchBar = UISearchBar()
@@ -30,6 +38,8 @@ class ViewController: UIViewController {
     private func doSearch() {
         MBProgressHUD.showHUDAddedTo(self.view, animated: true)
         GithubRepo.fetchRepos(searchSettings, successCallback: { (repos) -> Void in
+            self.repos = repos
+            self.repoTableView.reloadData()
             for repo in repos {
                 print(repo)
             }
@@ -37,6 +47,34 @@ class ViewController: UIViewController {
         }, error: { (error) -> Void in
             print(error)
         })
+    }
+    
+    
+    func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if let count = repos?.count {
+            return count
+        } else {
+            return 0
+        }
+    }
+    
+    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCellWithIdentifier("repoCell", forIndexPath: indexPath)
+        if let repoCell = cell as? RepoTableViewCell {
+            if let repo = self.repos?[indexPath.row]{
+                repoCell.nameLabel.text = repo.name
+                repoCell.descriptionLabel.text = repo.repoDescription
+                repoCell.starsLabel.text = "Stars: \(repo.stars!)"
+                repoCell.forksLabel.text = "Forks: \(repo.forks!)"
+                repoCell.avatarImageView.setImageWithURL(NSURL(string:repo.ownerAvatarURL!)!)
+                repoCell.ownerLabel.text = repo.ownerHandle
+            }
+        }
+        return cell;
     }
 }
 
